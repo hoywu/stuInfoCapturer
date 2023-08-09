@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>综合测评 学业分验证系统</title>
+    <style>
+        body {
+            text-align: center;
+        }
+
+        #qrCodeImage {
+            width: 400px;
+            height: 400px;
+            display: none;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+<h1 style="text-align: center;">综合测评 学业分验证系统</h1>
+<div id="qrCodeContainer" style="text-align: center;">
+    <img id="qrCodeImage" src="" alt="QR Code">
+    <p id="statusText">正在获取二维码...</p>
+    <p id="descText">请使用今日校园App扫码并确认<br>在提示验证成功之前，不要关闭本页面</p>
+</div>
+
+<script>
+    baseURL = "";
+
+    async function getToken() {
+        const response = await fetch(baseURL + '/GetToken');
+        return await response.json();
+    }
+
+    async function getQRCode(session) {
+        const response = await fetch(baseURL + '/GetQRCode', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(session),
+        });
+        const blob = await response.blob();
+        return URL.createObjectURL(blob);
+    }
+
+    async function checkQRStatus(session) {
+        const response = await fetch(baseURL + '/CheckQRStatus', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(session),
+        });
+        return await response.text();
+    }
+
+    async function logged(session) {
+        const response = await fetch(baseURL + '/Logged', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(session),
+        });
+        return await response.text();
+    }
+
+    async function updateStatus(session) {
+        const status = await checkQRStatus(session);
+
+        if (status === '2') {
+            updateStatusText('✅已扫码，等待确认登录...');
+        } else if (status === '1') {
+            try {
+                const result = await logged(session);
+                const success = result === 'true';
+                if (success) {
+                    updateStatusText('验证成功✅');
+                } else {
+                    updateStatusText('❎验证失败，当前教务系统不可用，请稍后刷新页面再试: ' + result);
+                }
+            } catch (error) {
+                updateStatusText('❎错误: ' + error);
+            }
+            document.getElementById('qrCodeImage').style.display = 'none';
+            return;
+        } else if (status === '3') {
+            updateStatusText('❎二维码已过期，请刷新页面');
+            document.getElementById('qrCodeImage').style.display = 'none';
+            return;
+        }
+
+        setTimeout(() => updateStatus(session), 3000);
+    }
+
+    async function initialize() {
+        try {
+            const session = await getToken();
+            const qrCodeImage = document.getElementById('qrCodeImage');
+            qrCodeImage.src = await getQRCode(session);
+            qrCodeImage.style.display = 'block';
+            updateStatusText('⏱️等待扫码...');
+
+            await updateStatus(session);
+        } catch (error) {
+            updateStatusText('❎错误: ' + error);
+        }
+    }
+
+    function updateStatusText(text) {
+        const statusTextElement = document.getElementById('statusText');
+        statusTextElement.innerText = text;
+    }
+
+    initialize();
+</script>
+</body>
+</html>
