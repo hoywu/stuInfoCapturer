@@ -23,6 +23,7 @@
     <img id="qrCodeImage" src="" alt="QR Code">
     <p id="statusText">正在获取二维码...</p>
     <p id="descText">请使用今日校园App扫码并确认<br>在提示验证成功之前，不要关闭本页面</p>
+    <p id="github"><a href="https://github.com/hoywu/stuInfoCapturer">GitHub - hoywu/stuInfoCapturer</a></p>
 </div>
 
 <script>
@@ -73,12 +74,21 @@
         if (status === '2') {
             updateStatusText('✅已扫码，等待确认登录...');
         } else if (status === '1') {
+            let result;
             try {
-                const result = await logged(session);
-                const success = result === 'true';
-                if (success) {
+                result = await logged(session);
+                let parsedResult;
+                try {
+                    parsedResult = JSON.parse(result);
                     updateStatusText('验证成功✅');
-                } else {
+                    if (parsedResult.error === true) {
+                        updateResultText('因存在特殊成绩字段，学业分计算失败，请联系你的综测负责人');
+                    } else {
+                        let text = '学业基本分: ' + parsedResult.baseScore + '\n';
+                        text += '学业附加分: ' + parsedResult.extraScore;
+                        updateResultText(text);
+                    }
+                } catch (e) {
                     updateStatusText('❎验证失败，当前教务系统不可用，请稍后刷新页面再试: ' + result);
                 }
             } catch (error) {
@@ -110,8 +120,13 @@
     }
 
     function updateStatusText(text) {
-        const statusTextElement = document.getElementById('statusText');
-        statusTextElement.innerText = text;
+        const element = document.getElementById('statusText');
+        element.innerText = text;
+    }
+
+    function updateResultText(text) {
+        const element = document.getElementById('descText');
+        element.innerText = text;
     }
 
     initialize();

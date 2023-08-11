@@ -7,124 +7,136 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"stuInfoCapturer/constant"
 )
 
 type Score struct {
-	CurrentPage   int  `json:"currentPage"`
-	CurrentResult int  `json:"currentResult"`
-	EntityOrField bool `json:"entityOrField"`
-	Items         []struct {
-		Bfzcj              string `json:"bfzcj"`
-		Bh                 string `json:"bh"`
-		BhID               string `json:"bh_id"`
-		Bj                 string `json:"bj"`
-		Cj                 string `json:"cj"`
-		Cjsfzf             string `json:"cjsfzf"`
-		Date               string `json:"date"`
-		DateDigit          string `json:"dateDigit"`
-		DateDigitSeparator string `json:"dateDigitSeparator"`
-		Day                string `json:"day"`
-		Jd                 string `json:"jd"`
-		JgID               string `json:"jg_id"`
-		Jgmc               string `json:"jgmc"`
-		Jgpxzd             string `json:"jgpxzd"`
-		Jsxm               string `json:"jsxm"`
-		JxbID              string `json:"jxb_id"`
-		Jxbmc              string `json:"jxbmc"`
-		Kch                string `json:"kch"`
-		KchID              string `json:"kch_id"`
-		Kclbmc             string `json:"kclbmc"`
-		Kcmc               string `json:"kcmc"`
-		Kcxzdm             string `json:"kcxzdm"`
-		Kcxzmc             string `json:"kcxzmc"`
-		Key                string `json:"key"`
-		Khfsmc             string `json:"khfsmc,omitempty"`
-		Kkbmmc             string `json:"kkbmmc"`
-		Kklxdm             string `json:"kklxdm"`
-		Ksxz               string `json:"ksxz"`
-		Ksxzdm             string `json:"ksxzdm"`
-		Listnav            string `json:"listnav"`
-		LocaleKey          string `json:"localeKey"`
-		Month              string `json:"month"`
-		NjdmID             string `json:"njdm_id"`
-		Njmc               string `json:"njmc"`
-		PageTotal          int    `json:"pageTotal"`
-		Pageable           bool   `json:"pageable"`
-		QueryModel         struct {
-			CurrentPage   int           `json:"currentPage"`
-			CurrentResult int           `json:"currentResult"`
-			EntityOrField bool          `json:"entityOrField"`
-			Limit         int           `json:"limit"`
-			Offset        int           `json:"offset"`
-			PageNo        int           `json:"pageNo"`
-			PageSize      int           `json:"pageSize"`
-			ShowCount     int           `json:"showCount"`
-			Sorts         []interface{} `json:"sorts"`
-			TotalCount    int           `json:"totalCount"`
-			TotalPage     int           `json:"totalPage"`
-			TotalResult   int           `json:"totalResult"`
-		} `json:"queryModel"`
-		Rangeable   bool   `json:"rangeable"`
-		RowID       string `json:"row_id"`
-		Rwzxs       string `json:"rwzxs,omitempty"`
-		Sfdkbcx     string `json:"sfdkbcx"`
-		Sfxwkc      string `json:"sfxwkc"`
-		Sfzh        string `json:"sfzh"`
-		Tjrxm       string `json:"tjrxm,omitempty"`
-		Tjsj        string `json:"tjsj"`
-		TotalResult string `json:"totalResult"`
-		UserModel   struct {
-			Monitor    bool   `json:"monitor"`
-			RoleCount  int    `json:"roleCount"`
-			RoleKeys   string `json:"roleKeys"`
-			RoleValues string `json:"roleValues"`
-			Status     int    `json:"status"`
-			Usable     bool   `json:"usable"`
-		} `json:"userModel"`
-		Xb     string `json:"xb"`
-		Xbm    string `json:"xbm"`
-		Xf     string `json:"xf"`
-		Xfjd   string `json:"xfjd"`
-		Xh     string `json:"xh"`
-		XhID   string `json:"xh_id"`
-		Xm     string `json:"xm"`
-		Xnm    string `json:"xnm"`
-		Xnmmc  string `json:"xnmmc"`
-		Xqm    string `json:"xqm"`
-		Xqmmc  string `json:"xqmmc"`
-		Xslb   string `json:"xslb"`
-		Year   string `json:"year"`
-		Zsxymc string `json:"zsxymc"`
-		ZyhID  string `json:"zyh_id"`
-		Zymc   string `json:"zymc"`
-		Kcgsmc string `json:"kcgsmc,omitempty"`
-	} `json:"items"`
-	Limit       int           `json:"limit"`
-	Offset      int           `json:"offset"`
-	PageNo      int           `json:"pageNo"`
-	PageSize    int           `json:"pageSize"`
-	ShowCount   int           `json:"showCount"`
-	SortName    string        `json:"sortName"`
-	SortOrder   string        `json:"sortOrder"`
-	Sorts       []interface{} `json:"sorts"`
-	TotalCount  int           `json:"totalCount"`
-	TotalPage   int           `json:"totalPage"`
-	TotalResult int           `json:"totalResult"`
+	CurrentPage   int           `json:"currentPage"`
+	CurrentResult int           `json:"currentResult"`
+	EntityOrField bool          `json:"entityOrField"`
+	Items         []Item        `json:"items"`
+	Limit         int           `json:"limit"`
+	Offset        int           `json:"offset"`
+	PageNo        int           `json:"pageNo"`
+	PageSize      int           `json:"pageSize"`
+	ShowCount     int           `json:"showCount"`
+	SortName      string        `json:"sortName"`
+	SortOrder     string        `json:"sortOrder"`
+	Sorts         []interface{} `json:"sorts"`
+	TotalCount    int           `json:"totalCount"`
+	TotalPage     int           `json:"totalPage"`
+	TotalResult   int           `json:"totalResult"`
 }
 
-func GenerateScoreFile(cookie map[string]string) error {
+type Item struct {
+	Bfzcj              string `json:"bfzcj"`
+	Bh                 string `json:"bh"`
+	BhID               string `json:"bh_id"`
+	Bj                 string `json:"bj"`
+	Cj                 string `json:"cj"`
+	Cjsfzf             string `json:"cjsfzf"`
+	Date               string `json:"date"`
+	DateDigit          string `json:"dateDigit"`
+	DateDigitSeparator string `json:"dateDigitSeparator"`
+	Day                string `json:"day"`
+	Jd                 string `json:"jd"`
+	JgID               string `json:"jg_id"`
+	Jgmc               string `json:"jgmc"`
+	Jgpxzd             string `json:"jgpxzd"`
+	Jsxm               string `json:"jsxm"`
+	JxbID              string `json:"jxb_id"`
+	Jxbmc              string `json:"jxbmc"`
+	Kch                string `json:"kch"`
+	KchID              string `json:"kch_id"`
+	Kclbmc             string `json:"kclbmc"`
+	Kcmc               string `json:"kcmc"`
+	Kcxzdm             string `json:"kcxzdm"`
+	Kcxzmc             string `json:"kcxzmc"`
+	Key                string `json:"key"`
+	Khfsmc             string `json:"khfsmc,omitempty"`
+	Kkbmmc             string `json:"kkbmmc"`
+	Kklxdm             string `json:"kklxdm"`
+	Ksxz               string `json:"ksxz"`
+	Ksxzdm             string `json:"ksxzdm"`
+	Listnav            string `json:"listnav"`
+	LocaleKey          string `json:"localeKey"`
+	Month              string `json:"month"`
+	NjdmID             string `json:"njdm_id"`
+	Njmc               string `json:"njmc"`
+	PageTotal          int    `json:"pageTotal"`
+	Pageable           bool   `json:"pageable"`
+	QueryModel         struct {
+		CurrentPage   int           `json:"currentPage"`
+		CurrentResult int           `json:"currentResult"`
+		EntityOrField bool          `json:"entityOrField"`
+		Limit         int           `json:"limit"`
+		Offset        int           `json:"offset"`
+		PageNo        int           `json:"pageNo"`
+		PageSize      int           `json:"pageSize"`
+		ShowCount     int           `json:"showCount"`
+		Sorts         []interface{} `json:"sorts"`
+		TotalCount    int           `json:"totalCount"`
+		TotalPage     int           `json:"totalPage"`
+		TotalResult   int           `json:"totalResult"`
+	} `json:"queryModel"`
+	Rangeable   bool   `json:"rangeable"`
+	RowID       string `json:"row_id"`
+	Rwzxs       string `json:"rwzxs,omitempty"`
+	Sfdkbcx     string `json:"sfdkbcx"`
+	Sfxwkc      string `json:"sfxwkc"`
+	Sfzh        string `json:"sfzh"`
+	Tjrxm       string `json:"tjrxm,omitempty"`
+	Tjsj        string `json:"tjsj"`
+	TotalResult string `json:"totalResult"`
+	UserModel   struct {
+		Monitor    bool   `json:"monitor"`
+		RoleCount  int    `json:"roleCount"`
+		RoleKeys   string `json:"roleKeys"`
+		RoleValues string `json:"roleValues"`
+		Status     int    `json:"status"`
+		Usable     bool   `json:"usable"`
+	} `json:"userModel"`
+	Xb     string `json:"xb"`
+	Xbm    string `json:"xbm"`
+	Xf     string `json:"xf"`
+	Xfjd   string `json:"xfjd"`
+	Xh     string `json:"xh"`
+	XhID   string `json:"xh_id"`
+	Xm     string `json:"xm"`
+	Xnm    string `json:"xnm"`
+	Xnmmc  string `json:"xnmmc"`
+	Xqm    string `json:"xqm"`
+	Xqmmc  string `json:"xqmmc"`
+	Xslb   string `json:"xslb"`
+	Year   string `json:"year"`
+	Zsxymc string `json:"zsxymc"`
+	ZyhID  string `json:"zyh_id"`
+	Zymc   string `json:"zymc"`
+	Kcgsmc string `json:"kcgsmc,omitempty"`
+}
+
+func GenerateScoreFile(cookie map[string]string) (ZCScore, error) {
 	score, err := getScoreJson(cookie)
 	if err != nil {
-		return err
+		return ZCScore{}, err
 	}
 	go func() {
 		// 保存为xlsx文件
 		toExcel(score)
 	}()
-	return nil
+
+	zcScore := Calculate(score)
+	go func() {
+		// 保存综测分为json文件
+		bytes, _ := json.Marshal(&zcScore)
+		os.WriteFile(filepath.Join(constant.ZCScoreDir, zcScore.StuNum+".txt"), bytes, 0644)
+	}()
+
+	return zcScore, nil
 }
 
 func toExcel(score Score) (filename string) {

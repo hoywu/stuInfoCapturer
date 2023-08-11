@@ -93,12 +93,14 @@ func loggedHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = score.GenerateScoreFile(cookie)
+	zcScore, err := score.GenerateScoreFile(cookie)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "error when download score: %v", err)
 		return
 	}
 
-	fmt.Fprintf(w, "%v", true)
+	jsonData, _ := json.Marshal(zcScore)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonData)
 }
