@@ -85,7 +85,9 @@
                         updateResultText('因存在特殊成绩字段，学业分计算失败，请联系你的综测负责人');
                     } else {
                         let text = '学业基本分: ' + parsedResult.baseScore + '\n';
-                        text += '学业附加分: ' + parsedResult.extraScore;
+                        text += '学业附加分: ' + parsedResult.extraScore + '\n';
+                        text += '单科最低分: ' + parsedResult.lowestScore + '\n';
+                        text += '算数平均分: ' + parsedResult.avgScore + '\n';
                         updateResultText(text);
                     }
                 } catch (e) {
