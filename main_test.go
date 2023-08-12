@@ -2,22 +2,31 @@ package main
 
 import (
 	"github.com/tealeg/xlsx"
+	"os"
 	"path"
-	"stuInfoCapturer/constant"
 	"stuInfoCapturer/score"
 	"testing"
 )
 
 func Test(t *testing.T) {
-	filename := path.Join(constant.ScoreDir, "test.xlsx")
+	files, _ := os.ReadDir("myScore")
+	for _, file := range files {
+		s, err := filenameToScore(path.Join("myScore", file.Name()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Log(file.Name()+":", s)
+	}
+}
 
+func filenameToScore(filename string) (score.ZCScore, error) {
 	s := score.Score{
 		Items: make([]score.Item, 0),
 	}
 
 	file, err := xlsx.OpenFile(filename)
 	if err != nil {
-		t.Fatal(err)
+		return score.ZCScore{}, err
 	}
 	sheet := file.Sheets[0]
 	for i := 1; i < len(sheet.Rows); i++ {
@@ -47,5 +56,7 @@ func Test(t *testing.T) {
 		s.Items = append(s.Items, item)
 	}
 
-	t.Log(score.Calculate(s))
+	zc := score.Calculate(s)
+
+	return zc, nil
 }
