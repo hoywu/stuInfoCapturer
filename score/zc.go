@@ -2,6 +2,7 @@ package score
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"stuInfoCapturer/constant"
@@ -21,6 +22,7 @@ func Calculate(json Score) ZCScore {
 	}
 	baseScore, err := calculateBaseScore(json)
 	if err != nil {
+		log.Println("error when calculate base score: ", err)
 		zcScore.Error = true
 		return zcScore
 	}
@@ -55,17 +57,30 @@ func calculateBaseScore(json Score) (string, error) {
 			continue
 		}
 
-		score, err := strconv.ParseInt(item.Cj, 10, 32)
+		score, err := strconv.ParseInt(strings.TrimSpace(item.Cj), 10, 32)
 		if err != nil {
+			log.Println("error when parse score: ", strings.TrimSpace(item.Cj))
 			return "", err
 		}
-		credit, err := strconv.ParseFloat(item.Xf, 64)
+		credit, err := strconv.ParseFloat(strings.TrimSpace(item.Xf), 64)
 		if err != nil {
+			log.Println("error when parse credit: ", strings.TrimSpace(item.Xf))
 			return "", err
 		}
-		semester, err := strconv.ParseInt(item.Xqmmc, 10, 32)
+		semester, err := strconv.ParseInt(strings.TrimSpace(item.Xqmmc), 10, 32)
 		if err != nil {
+			log.Println("error when parse semester: ", strings.TrimSpace(item.Xqmmc))
 			return "", err
+		}
+
+		if strings.Contains(item.Ksxz, "重修") {
+			// 重修科目
+			if score >= 60 {
+				continue
+			} else {
+				extraDeduction += credit
+				continue
+			}
 		}
 
 		if score == 0 && strings.Contains(item.Ksxz, "正常考试") {
@@ -85,18 +100,18 @@ func calculateBaseScore(json Score) (string, error) {
 			}
 		}
 
-		if (strings.Contains(item.Ksxz, "正常考试") || strings.Contains(item.Ksxz, "缓考")) && score >= 60 {
-			// 正常考试或缓考及格
-			weightedGrade += float64(score) * credit
-			sumCredit += credit
-			continue
-		}
-
-		if (strings.Contains(item.Ksxz, "正常考试") || strings.Contains(item.Ksxz, "缓考")) && score < 60 {
-			// 正常考试或缓考不及格
-			sumCredit += credit
-			extraDeduction += credit
-			continue
+		if strings.Contains(item.Ksxz, "正常考试") || strings.Contains(item.Ksxz, "缓考") {
+			if score >= 60 {
+				// 正常考试或缓考及格
+				weightedGrade += float64(score) * credit
+				sumCredit += credit
+				continue
+			} else {
+				// 正常考试或缓考不及格
+				sumCredit += credit
+				extraDeduction += credit
+				continue
+			}
 		}
 
 		if strings.Contains(item.Ksxz, "补考") {
@@ -108,7 +123,7 @@ func calculateBaseScore(json Score) (string, error) {
 					extraDeduction += credit
 					continue
 				}
-			} else {
+			} else if semester == 2 {
 				// 第2学期补考
 				if score >= 60 {
 					weightedGrade += 60 * credit
@@ -118,6 +133,8 @@ func calculateBaseScore(json Score) (string, error) {
 				}
 			}
 		}
+
+		return "", fmt.Errorf("unknown error")
 	}
 
 	for _, item := range zeroItems {
